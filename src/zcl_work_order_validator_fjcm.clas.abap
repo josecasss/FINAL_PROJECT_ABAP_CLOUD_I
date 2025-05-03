@@ -78,15 +78,43 @@ CLASS zcl_work_order_validator_fjcm IMPLEMENTATION.
   METHOD if_oo_adt_classrun~main.
     out->write( 'This is a test message from zcl_work_order_validator_fjcm!' ).
     DATA(lo_validator) = NEW zcl_work_order_validator_fjcm( ).
+
+    " Declaración de variables locales
+    DATA: lv_customer_id  TYPE zde_customer_id_fjcm,
+          lv_technician_id TYPE zde_technician_id_fjcm,
+          lv_priority      TYPE zde_priority_fjcm.
+
+    " *** Obtener un Customer ID de la tabla ZT_CUSTOMER_FJCM ***
+    SELECT SINGLE customer_id
+      FROM ztcustomer_fjcm
+      INTO @lv_customer_id.
+    IF sy-subrc <> 0.
+      out->write( |No customers were found in table ZT_CUSTOMER_FJCM.| ).
+      RETURN.
+    ENDIF.
+
+    " *** Obtener un Technician ID de la tabla ZT_TECHNICIAN_FJCM ***
+    SELECT SINGLE technician_id
+      FROM zttechnician_fjc
+      INTO @lv_technician_id.
+    IF sy-subrc <> 0.
+      out->write( |No customers were found in table ZT_TECHNICIAN_FJCM.| ).
+      RETURN.
+    ENDIF.
+
+    " Asignar un valor de prioridad (puedes hacerlo aleatorio o fijo para la prueba)
+    lv_priority = c_valid_priority-a.
+
     DATA(lv_is_valid) = lo_validator->validate_create_order(
-        iv_customer_id  = '12345678'  " Replace with a valid customer ID from ZT_CUSTOMER
-        iv_technician_id = 'TECH0001'  " Replace with a valid technician ID from ZT_TECHNICIAN
-        iv_priority      = 'A'
+        iv_customer_id  = lv_customer_id
+        iv_technician_id = lv_technician_id
+        iv_priority      = lv_priority
     ).
+
     IF lv_is_valid = abap_true.
-      out->write( |Is order creation valid? TRUE| ).
+      out->write( |Is order creation valid? TRUE (con datos de la base de datos)| ).
     ELSE.
-      out->write( |Is order creation valid? FALSE| ).
+      out->write( |Is order creation valid? FALSE (con datos de la base de datos)| ).
     ENDIF.
   ENDMETHOD.
 
@@ -172,11 +200,11 @@ CLASS zcl_work_order_validator_fjcm IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD check_customer_exists.
-    " Implementación: Verificar en la tabla ZT_CUSTOMER si existe el cliente
-    SELECT SINGLE customer_id
-           FROM ztcustomer_fjcm
-           WHERE customer_id = @iv_customer_id
-           INTO @DATA(lv_customer_id).  " Added INTO clause
+
+    SELECT SINGLE FROM ztcustomer_fjcm
+                  FIELDS customer_id
+                  WHERE customer_id = @iv_customer_id
+                  INTO @DATA(lv_customer_id).
     IF sy-subrc = 0.
       rv_exists = abap_true.
     ELSE.
@@ -185,11 +213,11 @@ CLASS zcl_work_order_validator_fjcm IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD check_technician_exists.
-    " Implementación: Verificar en la tabla ZT_TECHNICIAN si existe el técnico
-    SELECT SINGLE technician_id
-           FROM zttechnician_fjc
-           WHERE technician_id = @iv_technician_id
-           INTO @DATA(lv_technician_id).  " Added INTO clause
+
+    SELECT SINGLE FROM zttechnician_fjc
+                  FIELDS technician_id
+                  WHERE technician_id = @iv_technician_id
+                  INTO @DATA(lv_technician_id).
     IF sy-subrc = 0.
       rv_exists = abap_true.
     ELSE.
@@ -198,11 +226,11 @@ CLASS zcl_work_order_validator_fjcm IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD check_order_exists.
-    " Implementación: Verificar en la tabla ZT_WORK_ORDER si existe la orden
-    SELECT SINGLE work_order_id
-           FROM ztwork_order_fjc
-           WHERE work_order_id = @iv_work_order_id
-           INTO @DATA(lv_work_order_id).  " Added INTO clause
+
+    SELECT SINGLE FROM ztwork_order_fjc
+                  FIELDS work_order_id
+                  WHERE work_order_id = @iv_work_order_id
+                  INTO @DATA(lv_work_order_id).
     IF sy-subrc = 0.
       rv_exists = abap_true.
     ELSE.
@@ -211,11 +239,10 @@ CLASS zcl_work_order_validator_fjcm IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD check_order_history.
-    " Implementación: Verificar en la tabla ZT_WORK_ORDER_HIST si hay entradas para la orden
-    SELECT SINGLE history_id
-           FROM ztwork_histo_fjc
-           WHERE work_order_id = @iv_work_order_id
-           INTO @DATA(lv_history_id).  " Added INTO clause
+     SELECT SINGLE FROM ztwork_histo_fjc
+                  FIELDS history_id
+                  WHERE work_order_id = @iv_work_order_id
+                  INTO @DATA(lv_history_id).
     IF sy-subrc = 0.
       rv_exists = abap_true.
     ELSE.
